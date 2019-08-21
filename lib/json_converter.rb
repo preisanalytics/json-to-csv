@@ -2,24 +2,27 @@ require 'csv'
 require 'json'
 
 class JsonConverter
-  # FIXME: this no longer works because of changes to method #conver_to_csv
   # Generate and return a csv representation of the data
-  # def generate_csv(json, headers=true, nil_substitute='')
-  #   csv = convert_to_csv json, nil_substitute
-  #   headers_written = false
+  def generate_csv(json,
+                   headers: true,
+                   nil_substitute: '',
+                   fields: nil)
+    csv = convert_to_csv json, nil_substitute, fields
 
-  #   generated_csv = CSV.generate do |output|
-  #     csv.each do |row|
-  #       if headers && !headers_written
-  #         output << row.keys && headers_written = true
-  #       end
+    CSV.generate do |output|
+      headers_line = csv.shift
 
-  #       output << row.values
-  #     end
-  #   end
+      columns_count = headers_line.size
 
-  #   generated_csv
-  # end
+      if headers
+        output << headers_line
+      end
+
+      csv.each do |row|
+        output << row + [nil] * (columns_count - row.size)
+      end
+    end
+  end
 
   # Generate a csv representation of the data, then write to file
   def write_to_csv(json,
