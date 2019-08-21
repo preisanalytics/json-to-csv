@@ -2,36 +2,40 @@ require 'csv'
 require 'json'
 
 class JsonConverter
+  # FIXME: this no longer works because of changes to method #conver_to_csv
   # Generate and return a csv representation of the data
-  def generate_csv(json, headers=true, nil_substitute='')
-    csv = convert_to_csv json, nil_substitute
-    headers_written = false
+  # def generate_csv(json, headers=true, nil_substitute='')
+  #   csv = convert_to_csv json, nil_substitute
+  #   headers_written = false
 
-    generated_csv = CSV.generate do |output|
-      csv.each do |row|
-        if headers && !headers_written
-          output << row.keys && headers_written = true
-        end
+  #   generated_csv = CSV.generate do |output|
+  #     csv.each do |row|
+  #       if headers && !headers_written
+  #         output << row.keys && headers_written = true
+  #       end
 
-        output << row.values
-      end
-    end
+  #       output << row.values
+  #     end
+  #   end
 
-    generated_csv
-  end
+  #   generated_csv
+  # end
 
   # Generate a csv representation of the data, then write to file
-  def write_to_csv(json, output_filename='out.csv', headers=true, nil_substitute='')
+  def write_to_csv(json, output_filename = 'out.csv', headers = true, nil_substitute = '')
     csv = convert_to_csv json, nil_substitute
-    headers_written = false 
 
-    CSV.open(output_filename.to_s, 'w') do |output_file|
+    CSV.open(output_filename.to_s, 'w', force_quotes: false) do |output_file|
+      headers_line = csv.shift
+
+      columns_count = headers_line.size
+
+      if headers
+        output_file << headers_line
+      end
+
       csv.each do |row|
-        if headers && !headers_written
-          output_file << row.keys && headers_written = true
-        end
-
-        output_file << row.values
+        output_file << row + [nil] * (columns_count - row.size)
       end
     end
   end
@@ -43,17 +47,34 @@ class JsonConverter
     json = JSON.parse json if json.is_a? String
 
     in_array = array_from json
-    out_array = []
 
     # Replace all nil values with the value of nil_substitute; The presence
     # of nil values in the data will usually result in uneven rows 
     in_array.map! { |x| nils_to_strings x, nil_substitute }
 
-    in_array.each do |row|
-      out_array[out_array.length] = flatten row
+    rows = in_array.map { |row| flatten row }
+
+    headers = {}
+    number_of_columns = 0
+
+    csv = rows.map do |row|
+      row.keys.each do |header|
+        if !headers.key?(header)
+          headers[header] = number_of_columns
+          number_of_columns += 1
+        end
+      end
+
+      final_row = []
+
+      row.each do |k, v|
+        final_row[headers[k]] = v
+      end
+
+      final_row
     end
 
-    out_array
+    csv.unshift(headers.keys)
   end
 
   # Recursively convert all nil values of a hash to a specified string
