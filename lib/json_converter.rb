@@ -22,10 +22,15 @@ class JsonConverter
   # end
 
   # Generate a csv representation of the data, then write to file
-  def write_to_csv(json, output_filename = 'out.csv', headers = true, nil_substitute = '')
-    csv = convert_to_csv json, nil_substitute
+  def write_to_csv(json,
+                   output_file: 'out.csv',
+                   headers: true,
+                   nil_substitute: '',
+                   fields: nil)
 
-    CSV.open(output_filename.to_s, 'w', force_quotes: false) do |output_file|
+    csv = convert_to_csv json, nil_substitute, fields
+
+    CSV.open(output_file.to_s, 'w', force_quotes: false) do |output_file|
       headers_line = csv.shift
 
       columns_count = headers_line.size
@@ -43,7 +48,7 @@ class JsonConverter
   private
 
   # Perform the actual conversion
-  def convert_to_csv(json, nil_substitute)
+  def convert_to_csv(json, nil_substitute, fields)
     json = JSON.parse json if json.is_a? String
 
     in_array = array_from json
@@ -59,7 +64,7 @@ class JsonConverter
 
     csv = rows.map do |row|
       row.keys.each do |header|
-        if !headers.key?(header)
+        if !headers.key?(header) && field_should_be_included?(header, fields)
           headers[header] = number_of_columns
           number_of_columns += 1
         end
@@ -68,13 +73,21 @@ class JsonConverter
       final_row = []
 
       row.each do |k, v|
-        final_row[headers[k]] = v
+        if headers[k]
+          final_row[headers[k]] = v
+        end
       end
 
       final_row
     end
 
     csv.unshift(headers.keys)
+  end
+
+  def field_should_be_included?(field, list)
+    return true if list.nil?
+
+    list.include? field
   end
 
   # Recursively convert all nil values of a hash to a specified string
