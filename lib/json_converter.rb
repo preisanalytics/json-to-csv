@@ -75,10 +75,16 @@ class JsonConverter
     scalars = [String, Integer, Float, FalseClass, TrueClass]
     columns = {}
 
-    if [Hash, Array].include? target.class
+    if target.class == Hash
       target.each do |k, v|
-        new_columns = flatten(v, "#{path}#{k}/") if target.class == Hash
-        new_columns = flatten(k, "#{path}#{k}/") if target.class == Array
+        new_columns = flatten(v, "#{path}#{k}/")
+        columns = columns.merge new_columns
+      end
+
+      return columns
+    elsif target.class == Array
+      target.each_with_index do |v, i|
+        new_columns = flatten(v, "#{path}#{i}/")
         columns = columns.merge new_columns
       end
 
