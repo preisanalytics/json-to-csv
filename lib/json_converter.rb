@@ -6,10 +6,11 @@ class JsonConverter
   def generate_csv(json,
                    headers: true,
                    nil_substitute: '',
-                   fields: nil)
+                   fields: nil,
+                   force_quotes: false)
     csv = convert_to_csv json, nil_substitute, fields
 
-    CSV.generate do |output|
+    CSV.generate(force_quotes: force_quotes) do |output|
       headers_line = csv.shift
 
       columns_count = headers_line.size
@@ -29,11 +30,12 @@ class JsonConverter
                    output_file: 'out.csv',
                    headers: true,
                    nil_substitute: '',
-                   fields: nil)
+                   fields: nil,
+                   force_quotes: false)
 
     csv = convert_to_csv json, nil_substitute, fields
 
-    CSV.open(output_file.to_s, 'w', force_quotes: false) do |output_file|
+    CSV.open(output_file.to_s, 'w', force_quotes: force_quotes) do |output_file|
       headers_line = csv.shift
 
       columns_count = headers_line.size
